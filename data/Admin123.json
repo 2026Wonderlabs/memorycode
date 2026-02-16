@@ -35,5 +35,13 @@
   ],
   "videos": [],
   "story": "a",
-  "quote": "a"
+  "quote": "a",
+  "playlists": [
+    {
+      "platform": "amazon",
+      "id": "98a5e948cfe94e0a95364c39b46173ba",
+      "url": "https://music.amazon.co.uk/user-playlists/98a5e948cfe94e0a95364c39b46173ba?marketplaceId=A1F83G8C2ARO7P&musicTerritory=GB&ref=dm_sh_56fmsLbvaS12cEI4VXfH8Wcas",
+      "ts": 1771277731079
+    }
+  ]
 }
