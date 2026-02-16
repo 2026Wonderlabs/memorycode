@@ -37,7 +37,7 @@ app.post('/api/create-profile', (req, res) => {
   const file = path.join(DATA_DIR, `${id}.json`);
   if (fs.existsSync(file)) return res.status(409).send('Profile exists');
   const passHash = hashPass(passcode || '');
-  const profile = { id, name: name || '', bio: bio || '', photo: '', story: '', quote: '', passHash, photos: [], audios: [], videos: [], messages: [] };
+  const profile = { id, name: name || '', bio: bio || '', photo: '', story: '', quote: '', passHash, photos: [], audios: [], videos: [], messages: [], playlists: [] };
   fs.mkdirSync(path.join(UPLOADS_DIR, id, 'audios'), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(profile, null, 2));
   res.status(201).send('Created');
@@ -226,6 +226,66 @@ app.get('/api/messages', (req, res) => {
   const profile = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
   
   res.json({ messages: (profile.messages || []).sort((a, b) => b.ts - a.ts) });
+});
+
+// Playlist endpoints
+function extractPlaylistInfo(url) {
+  // Spotify: https://open.spotify.com/playlist/PLAYLIST_ID or https://open.spotify.com/playlist/PLAYLIST_ID?...
+  const spotifyMatch = url.match(/spotify\.com\/playlist\/([a-zA-Z0-9]+)/);
+  if (spotifyMatch) {
+    return { platform: 'spotify', id: spotifyMatch[1], url: `https://open.spotify.com/playlist/${spotifyMatch[1]}` };
+  }
+  
+  // Amazon Music: https://music.amazon.com/playlists/... or amazon music link
+  const amazonMatch = url.match(/music\.amazon\.com\/playlists\/([a-zA-Z0-9]+)/);
+  if (amazonMatch) {
+    return { platform: 'amazon', id: amazonMatch[1], url: url };
+  }
+  
+  return null;
+}
+
+app.post('/api/add-playlist', (req, res) => {
+  const id = req.query.id;
+  const { playlistUrl, passcode } = req.body || {};
+  
+  if (!id || !playlistUrl || !passcode) return res.status(400).send('Missing fields');
+  
+  const dataFile = path.join(DATA_DIR, `${id}.json`);
+  if (!fs.existsSync(dataFile)) return res.status(404).send('Profile not found');
+  
+  let profile = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+  const passOk = (hashPass(passcode) === profile.passHash);
+  if (!passOk) return res.status(403).send('Bad passcode');
+  
+  const playlistInfo = extractPlaylistInfo(playlistUrl);
+  if (!playlistInfo) return res.status(400).send('Invalid playlist URL');
+  
+  if (!profile.playlists) profile.playlists = [];
+  profile.playlists.push({ ...playlistInfo, ts: Date.now() });
+  
+  fs.writeFileSync(dataFile, JSON.stringify(profile, null, 2));
+  res.send('Playlist added');
+});
+
+app.post('/api/delete-playlist', (req, res) => {
+  const id = req.query.id;
+  const { playlistId, passcode } = req.body || {};
+  
+  if (!id || !playlistId || !passcode) return res.status(400).send('Missing fields');
+  
+  const dataFile = path.join(DATA_DIR, `${id}.json`);
+  if (!fs.existsSync(dataFile)) return res.status(404).send('Profile not found');
+  
+  let profile = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+  const passOk = (hashPass(passcode) === profile.passHash);
+  if (!passOk) return res.status(403).send('Bad passcode');
+  
+  if (!profile.playlists) profile.playlists = [];
+  profile.playlists = profile.playlists.filter(p => p.id !== playlistId);
+  
+  fs.writeFileSync(dataFile, JSON.stringify(profile, null, 2));
+  res.send('Playlist deleted');
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
