@@ -37,7 +37,7 @@ app.post('/api/create-profile', (req, res) => {
   const file = path.join(DATA_DIR, `${id}.json`);
   if (fs.existsSync(file)) return res.status(409).send('Profile exists');
   const passHash = hashPass(passcode || '');
-  const profile = { id, name: name || '', bio: bio || '', photo: '', passHash, photos: [], audios: [], videos: [] };
+  const profile = { id, name: name || '', bio: bio || '', photo: '', story: '', quote: '', passHash, photos: [], audios: [], videos: [], messages: [] };
   fs.mkdirSync(path.join(UPLOADS_DIR, id, 'audios'), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(profile, null, 2));
   res.status(201).send('Created');
@@ -46,7 +46,7 @@ app.post('/api/create-profile', (req, res) => {
 app.post('/api/edit-profile', (req, res) => {
   const id = req.query.id;
   if (!id) return res.status(400).send('Missing id');
-  const { name, bio, passcode, newPhoto } = req.body || {};
+  const { name, bio, passcode, newPhoto, story, quote } = req.body || {};
   const pass = passcode || '';
   const dataFile = path.join(DATA_DIR, `${id}.json`);
   if (!fs.existsSync(dataFile)) return res.status(404).send('Profile not found');
@@ -56,6 +56,8 @@ app.post('/api/edit-profile', (req, res) => {
   if (name !== undefined) profile.name = name;
   if (bio !== undefined) profile.bio = bio;
   if (newPhoto !== undefined) profile.photo = newPhoto;
+  if (story !== undefined) profile.story = story;
+  if (quote !== undefined) profile.quote = quote;
   fs.writeFileSync(dataFile, JSON.stringify(profile, null, 2));
   res.send('OK');
 });
@@ -163,6 +165,67 @@ app.post('/api/upload', (req, res) => {
     fs.writeFileSync(dataFile, JSON.stringify(meta, null, 2));
     res.send('OK');
   });
+});
+
+app.post('/api/delete-file', (req, res) => {
+  const id = req.query.id;
+  if (!id) return res.status(400).send('Missing id');
+  const { type, filename, passcode } = req.body || {};
+  if (!type || !filename || !passcode) return res.status(400).send('Missing type, filename, or passcode');
+
+  const dataFile = path.join(DATA_DIR, `${id}.json`);
+  if (!fs.existsSync(dataFile)) return res.status(404).send('Profile not found');
+  let profile = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+
+  const passOk = (hashPass(passcode) === profile.passHash);
+  if (!passOk) return res.status(403).send('Bad passcode');
+
+  const filePath = path.join(UPLOADS_DIR, id, type, filename);
+  if (!fs.existsSync(filePath)) return res.status(404).send('File not found');
+
+  try {
+    fs.unlinkSync(filePath);
+    // Remove from metadata
+    if (type === 'photos') profile.photos = profile.photos.filter(p => p.name !== filename);
+    else if (type === 'audios') profile.audios = profile.audios.filter(a => a.name !== filename);
+    else if (type === 'videos') profile.videos = profile.videos.filter(v => v.name !== filename);
+    fs.writeFileSync(dataFile, JSON.stringify(profile, null, 2));
+    res.send('Deleted');
+  } catch (e) {
+    res.status(500).send('Delete failed');
+  }
+});
+
+app.post('/api/add-message', (req, res) => {
+  const id = req.query.id;
+  if (!id) return res.status(400).send('Missing id');
+  const { name, message } = req.body || {};
+  if (!message) return res.status(400).send('Message required');
+  
+  const dataFile = path.join(DATA_DIR, `${id}.json`);
+  if (!fs.existsSync(dataFile)) return res.status(404).send('Profile not found');
+  let profile = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+  
+  const msg = {
+    name: (name || 'Anonymous').substring(0, 100),
+    text: message.substring(0, 500),
+    ts: Date.now()
+  };
+  if (!profile.messages) profile.messages = [];
+  profile.messages.push(msg);
+  fs.writeFileSync(dataFile, JSON.stringify(profile, null, 2));
+  res.send('Message added');
+});
+
+app.get('/api/messages', (req, res) => {
+  const id = req.query.id;
+  if (!id) return res.status(400).send('Missing id');
+  
+  const dataFile = path.join(DATA_DIR, `${id}.json`);
+  if (!fs.existsSync(dataFile)) return res.status(404).send('Profile not found');
+  const profile = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+  
+  res.json({ messages: (profile.messages || []).sort((a, b) => b.ts - a.ts) });
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
