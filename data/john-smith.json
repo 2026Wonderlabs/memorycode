@@ -1,0 +1,10 @@
+{
+  "id": "john-smith",
+  "name": "John Michael Smith",
+  "bio": "A man who loved music, laughter, and living life to the fullest.",
+  "photo": "https://via.placeholder.com/180?text=John",
+  "passHash": "7e6e0c3079a08c5cc6036789b57e951f65f82383913ba1a49ae992544f1b4b6e",
+  "photos": [],
+  "audios": [],
+  "videos": []
+}

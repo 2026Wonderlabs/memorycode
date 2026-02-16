@@ -1,0 +1,168 @@
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const qrcode = require('qrcode');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const DATA_DIR = path.join(__dirname, 'data');
+
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+fs.mkdirSync(DATA_DIR, { recursive: true });
+
+app.use(express.static(__dirname));
+app.use('/uploads', express.static(UPLOADS_DIR));
+app.use(express.json());
+
+function hashPass(p) {
+  return crypto.createHash('sha256').update(p || '').digest('hex');
+}
+
+app.get('/api/profile', (req, res) => {
+  const id = req.query.id;
+  if (!id) return res.status(400).send({ error: 'Missing id' });
+  const file = path.join(DATA_DIR, `${id}.json`);
+  if (!fs.existsSync(file)) return res.status(404).send({ error: 'Not found' });
+  const j = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const { passHash, ...publicData } = j;
+  res.json(publicData);
+});
+
+app.post('/api/create-profile', (req, res) => {
+  const { id, name, passcode, bio } = req.body || {};
+  if (!id || !/^[A-Za-z0-9_-]+$/.test(id)) return res.status(400).send('Invalid id');
+  const file = path.join(DATA_DIR, `${id}.json`);
+  if (fs.existsSync(file)) return res.status(409).send('Profile exists');
+  const passHash = hashPass(passcode || '');
+  const profile = { id, name: name || '', bio: bio || '', photo: '', passHash, photos: [], audios: [], videos: [] };
+  fs.mkdirSync(path.join(UPLOADS_DIR, id, 'audios'), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(profile, null, 2));
+  res.status(201).send('Created');
+});
+
+app.post('/api/edit-profile', (req, res) => {
+  const id = req.query.id;
+  if (!id) return res.status(400).send('Missing id');
+  const { name, bio, passcode, newPhoto } = req.body || {};
+  const pass = passcode || '';
+  const dataFile = path.join(DATA_DIR, `${id}.json`);
+  if (!fs.existsSync(dataFile)) return res.status(404).send('Profile not found');
+  let profile = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+  const passOk = (hashPass(pass) === profile.passHash);
+  if (!passOk) return res.status(403).send('Bad passcode');
+  if (name !== undefined) profile.name = name;
+  if (bio !== undefined) profile.bio = bio;
+  if (newPhoto !== undefined) profile.photo = newPhoto;
+  fs.writeFileSync(dataFile, JSON.stringify(profile, null, 2));
+  res.send('OK');
+});
+
+app.post('/api/login', (req, res) => {
+  const id = req.query.id || req.body.id;
+  const pass = req.body.passcode || req.body.pass || '';
+  if (!id) return res.status(400).send('Missing id');
+  const dataFile = path.join(DATA_DIR, `${id}.json`);
+  if (!fs.existsSync(dataFile)) return res.status(404).send('Profile not found');
+  const profile = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+  const ADMIN = process.env.ADMIN_PASS || '';
+  const passOk = (ADMIN && pass === ADMIN) || (hashPass(pass) === profile.passHash);
+  if (!passOk) return res.status(403).send('Bad passcode');
+  res.send('OK');
+});
+
+app.get('/api/audios', (req, res) => {
+  const id = req.query.id;
+  if (!id) return res.status(400).send({ error: 'Missing id' });
+  const audiosDir = path.join(UPLOADS_DIR, id, 'audios');
+  const list = [];
+  if (fs.existsSync(audiosDir)) {
+    fs.readdirSync(audiosDir).forEach(fname => {
+      const fpath = path.join(audiosDir, fname);
+      if (fs.statSync(fpath).isFile()) {
+        list.push({ name: fname, url: `/uploads/${id}/audios/${fname}`, ts: fs.statSync(fpath).mtimeMs });
+      }
+    });
+  }
+  res.json({ audios: list.sort((a, b) => b.ts - a.ts) });
+});
+
+app.get('/api/profile-qr', async (req, res) => {
+  const id = req.query.id;
+  if (!id) return res.status(400).send({ error: 'Missing id' });
+  const file = path.join(DATA_DIR, `${id}.json`);
+  if (!fs.existsSync(file)) return res.status(404).send({ error: 'Profile not found' });
+  const profileUrl = `${req.protocol}://${req.get('host')}/?id=${encodeURIComponent(id)}`;
+  try {
+    const dataUrl = await qrcode.toDataURL(profileUrl, { errorCorrectionLevel: 'H', width: 360 });
+    res.json({ dataUrl, url: profileUrl });
+  } catch (e) {
+    res.status(500).send('QR generation failed');
+  }
+});
+
+app.post('/api/upload', (req, res) => {
+  const id = req.query.id;
+  if (!id) return res.status(400).send('Missing id');
+
+  const storage = multer.diskStorage({
+    destination: function (reqf, file, cb) {
+      const dir = path.join(UPLOADS_DIR, id);
+      fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: function (reqf, file, cb) {
+      const safe = file.originalname.replace(/[^a-zA-Z0-9.\-_.]/g, '_');
+      cb(null, Date.now() + '-' + safe);
+    }
+  });
+
+  const upload = multer({ storage, limits: { fileSize: 200 * 1024 * 1024 } }).any();
+  upload(req, res, err => {
+    if (err) return res.status(500).send('Upload error');
+
+    const pass = req.body.passcode || '';
+    const ADMIN = process.env.ADMIN_PASS || '';
+
+    const dataFile = path.join(DATA_DIR, `${id}.json`);
+    if (!fs.existsSync(dataFile)) return res.status(404).send('Profile not found');
+    let meta = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+
+    const passOk = (ADMIN && pass === ADMIN) || (hashPass(pass) === meta.passHash);
+    if (!passOk) return res.status(403).send('Bad passcode');
+
+    for (const f of req.files || []) {
+      const relBase = `/uploads/${id}`;
+      let subdir = 'files';
+      if (f.mimetype && f.mimetype.startsWith('image/')) subdir = 'photos';
+      else if (f.mimetype && f.mimetype.startsWith('audio/')) subdir = 'audios';
+      else if (f.mimetype && f.mimetype.startsWith('video/')) subdir = 'videos';
+      else {
+        // fallback to extension-based detection when mimetype is missing/unknown
+        const ext = (path.extname(f.originalname || '') || '').toLowerCase();
+        if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'].includes(ext)) subdir = 'photos';
+        else if (['.mp3', '.wav', '.ogg', '.m4a', '.flac'].includes(ext)) subdir = 'audios';
+        else if (['.mp4', '.mov', '.webm', '.mkv'].includes(ext)) subdir = 'videos';
+      }
+      const subdirPath = path.join(UPLOADS_DIR, id, subdir);
+      fs.mkdirSync(subdirPath, { recursive: true });
+      const newPath = path.join(subdirPath, path.basename(f.path));
+      fs.renameSync(f.path, newPath);
+      const rel = `${relBase}/${subdir}/${path.basename(f.path)}`;
+      if (subdir === 'photos') {
+        meta.photos.push({ name: f.originalname, url: rel, ts: Date.now() });
+      } else if (subdir === 'audios') {
+        meta.audios.push({ name: f.originalname, url: rel, ts: Date.now() });
+      } else if (subdir === 'videos') {
+        meta.videos.push({ name: f.originalname, url: rel, ts: Date.now() });
+      }
+    }
+
+    fs.writeFileSync(dataFile, JSON.stringify(meta, null, 2));
+    res.send('OK');
+  });
+});
+
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

@@ -1,0 +1,32 @@
+{
+  "id": "test-memorial",
+  "name": "Test Memorial",
+  "bio": "test",
+  "photo": "",
+  "passHash": "13d249f2cb4127b40cfa757866850278793f814ded3c587fe5889e889a7a9f6c",
+  "photos": [
+    {
+      "name": "sample1.jpg",
+      "url": "/uploads/test-memorial/photos/1771274289342-sample1.jpg",
+      "ts": 1771274289474
+    },
+    {
+      "name": "sample2.jpg",
+      "url": "/uploads/test-memorial/photos/1771274289363-sample2.jpg",
+      "ts": 1771274289485
+    }
+  ],
+  "audios": [
+    {
+      "name": "sample1.mp3",
+      "url": "/uploads/test-memorial/audios/1771274342525-sample1.mp3",
+      "ts": 1771274342607
+    },
+    {
+      "name": "sample2.mp3",
+      "url": "/uploads/test-memorial/audios/1771274342550-sample2.mp3",
+      "ts": 1771274342610
+    }
+  ],
+  "videos": []
+}

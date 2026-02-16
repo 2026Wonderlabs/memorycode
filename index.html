@@ -1,0 +1,438 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Personal Memorial</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      /* Warm, calm palette: soft cream background, muted sepia accents */
+      body{font-family:'Georgia','Garamond',serif;color:#2f2a26;background:#fbf6f2;line-height:1.6}
+      main{max-width:760px;margin:44px auto;padding:28px;background:#fffdfa;border-radius:10px;box-shadow:0 6px 24px rgba(33,30,27,0.08)}
+      .hero{text-align:center;margin-bottom:38px;padding-bottom:28px;border-bottom:1px solid #efe9e2}
+      .profile-photo{width:180px;height:180px;border-radius:50%;object-fit:cover;margin:0 auto 18px;border:4px solid #efe6db;display:block}
+      h1{font-size:2.4rem;margin-bottom:8px;color:#2b2724;font-weight:500}
+      .bio{font-size:1.05rem;color:#61554d;font-style:italic;margin:12px 0 16px;line-height:1.7}
+      .section{margin:28px 0}
+      .section h2{font-size:1.25rem;margin-bottom:14px;color:#3b332f;font-weight:500;border-bottom:2px solid #efe9e2;padding-bottom:8px}
+      .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-top:14px}
+      .media-item{border-radius:8px;overflow:hidden;background:linear-gradient(180deg,#fffaf7,#fbf8f6);box-shadow:0 1px 0 rgba(0,0,0,0.02);border:1px solid #f0e9e1}
+      .media-item img,.media-item video{width:100%;height:150px;object-fit:cover;display:block}
+      .audio-item{margin:12px 0;padding:12px;background:#fbf8f6;border-radius:8px;border:1px solid #efe9e2}
+      .audio-name{font-size:0.95rem;color:#50443f;margin-bottom:8px;font-weight:600}
+      audio{width:100%;height:34px;margin-bottom:8px}
+      .btn{background:#8b6b4a;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:1rem;font-family:inherit;box-shadow:0 2px 6px rgba(139,107,74,0.12)}
+      .btn:hover{background:#6f5943}
+      .btn.secondary{background:#d6c6b1;color:#3d2f2a}
+      .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(20,18,16,0.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
+      .modal.show{display:flex}
+      .modal-content{background:#fffdfa;padding:26px;border-radius:10px;max-width:640px;width:100%;box-shadow:0 8px 30px rgba(33,30,27,0.08)}
+      .modal-content h3{margin-bottom:18px;font-size:1.15rem;font-weight:500;color:#2b2724}
+      .form-group{margin:14px 0}
+      .form-group label{display:block;margin-bottom:6px;font-weight:600;color:#3b332f}
+      .form-group input,.form-group textarea{width:100%;padding:10px 12px;border:1px solid #eee;border-radius:6px;font-family:inherit;font-size:1rem;background:#fffefc}
+      .form-group textarea{resize:vertical;min-height:100px}
+      .modal-buttons{display:flex;gap:10px;margin-top:18px}
+      .modal-buttons button{flex:1}
+      #createSection{padding:22px;text-align:center}
+      #createSection h2{font-size:1.6rem;margin-bottom:14px}
+      #createForm{max-width:520px;margin:0 auto;text-align:left}
+      .small{font-size:0.92rem;color:#7e6f66}
+    </style>
+  </head>
+  <body>
+    <div style="position:fixed;right:18px;top:18px;z-index:1100">
+      <button class="btn secondary" onclick="showLoginModal()">Login</button>
+    </div>
+    <main id="profileWrap" style="display:none">
+      <div class="hero">
+        <img id="profilePhoto" class="profile-photo" src="" alt="Profile photo" style="display:none">
+        <h1 id="profileName">Remembering</h1>
+        <p id="profileBio" class="bio"></p>
+        <button class="btn" onclick="showEditModal()">Edit Profile</button>
+        <button class="btn secondary" style="margin-left:10px" onclick="showLoginModal()">Login</button>
+        <button class="btn" style="background:#b89968;margin-left:10px" onclick="showUploadModal()">Upload Media</button>
+      </div>
+
+      <div class="section" id="photosSection" style="display:none">
+        <h2>Photos</h2>
+        <div id="photosContainer" class="media-grid"></div>
+      </div>
+
+      <div class="section" id="videosSection" style="display:none">
+        <h2>Videos</h2>
+        <div id="videosContainer" class="media-grid"></div>
+      </div>
+
+      <div class="section" id="audiosSection" style="display:none">
+        <h2>Audio Messages & Voices</h2>
+        <div id="audiosContainer"></div>
+      </div>
+
+      <div id="profileQrSection" style="text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #e0ddd9">
+        <p class="small">Share this memorial with a QR code:</p>
+        <img id="profileQr" src="" alt="QR code" style="width:200px;margin-top:12px">
+      </div>
+    </main>
+
+    <main id="createSection">
+      <div style="text-align:center;margin-bottom:40px">
+        <h2>Create a Memorial</h2>
+        <p class="small">Honor someone special by creating a personal memorial page.</p>
+      </div>
+      <form id="createForm">
+        <div class="form-group">
+          <label>Their name</label>
+          <input name="name" type="text" placeholder="e.g., John Smith" required>
+        </div>
+        <div class="form-group">
+          <label>Profile id (optional, will auto-generate from name)</label>
+          <input name="id" type="text" placeholder="e.g., john-1960-2024">
+        </div>
+        <div class="form-group">
+          <label>Admin passcode (to add/edit content)</label>
+          <input name="passcode" type="password" placeholder="Choose a strong passcode" required>
+        </div>
+        <div class="form-group">
+          <label>Biography or story (optional)</label>
+          <textarea name="bio" placeholder="Share their story, memories, or words..."></textarea>
+        </div>
+        <button type="submit" class="btn" style="width:100%">Create Memorial</button>
+      </form>
+      <div id="createResult" class="small" style="margin-top:15px;text-align:center"></div>
+    </main>
+
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <h3>Edit Memorial</h3>
+        <form id="editForm">
+          <div class="form-group">
+            <label>Name</label>
+            <input id="editName" type="text" placeholder="Name">
+          </div>
+          <div class="form-group">
+            <label>Biography</label>
+            <textarea id="editBio" placeholder="Biography"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Profile photo URL</label>
+            <input id="editPhoto" type="text" placeholder="https://example.com/photo.jpg">
+          </div>
+          <div class="form-group">
+            <label>Admin passcode</label>
+            <input id="editPass" type="password" placeholder="Passcode">
+          </div>
+          <div class="modal-buttons">
+            <button type="submit" class="btn">Save</button>
+            <button type="button" class="btn" style="background:#999" onclick="closeEditModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="uploadModal" class="modal">
+      <div class="modal-content">
+        <h3>Upload Photos, Videos & Audio</h3>
+        <form id="uploadForm">
+          <div class="form-group">
+            <label>Admin passcode</label>
+            <input id="uploadPass" type="password" placeholder="Enter passcode" required>
+          </div>
+          <div class="form-group">
+            <label>Photos (JPG, PNG, WebP)</label>
+            <input type="file" accept="image/*" multiple id="uploadPhotos">
+          </div>
+          <div class="form-group">
+            <label>Videos (MP4, WebM, MOV)</label>
+            <input type="file" accept="video/*" multiple id="uploadVideos">
+          </div>
+          <div class="form-group">
+            <label>Audio (MP3, WAV, OGG)</label>
+            <input type="file" accept="audio/*" multiple id="uploadAudios">
+          </div>
+          <div class="modal-buttons">
+            <button type="submit" class="btn">Upload Files</button>
+            <button type="button" class="btn" style="background:#999" onclick="closeUploadModal()">Cancel</button>
+          </div>
+          <div id="uploadStatus" class="small" style="margin-top:10px;text-align:center"></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="loginModal" class="modal">
+      <div class="modal-content">
+        <h3>Login to Edit / Upload</h3>
+        <form id="loginForm">
+          <div class="form-group">
+            <label>Profile id</label>
+            <input id="loginId" type="text" placeholder="profile-id (or leave blank to use current)">
+          </div>
+          <div class="form-group">
+            <label>Passcode</label>
+            <input id="loginPass" type="password" placeholder="Enter passcode" required>
+          </div>
+          <div class="modal-buttons">
+            <button type="submit" class="btn">Login</button>
+            <button type="button" class="btn" style="background:#999" onclick="closeLoginModal()">Cancel</button>
+          </div>
+          <div id="loginStatus" class="small" style="margin-top:10px;text-align:center"></div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      let id = params.get('id');
+      let currentProfile = null;
+
+      function slugify(text) {
+        return (text || '').toString().toLowerCase().trim()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-');
+      }
+
+      function showEditModal() {
+        document.getElementById('editModal').classList.add('show');
+        if (currentProfile) {
+          document.getElementById('editName').value = currentProfile.name;
+          document.getElementById('editBio').value = currentProfile.bio;
+          document.getElementById('editPhoto').value = currentProfile.photo || '';
+        }
+      }
+
+      function closeEditModal() {
+        document.getElementById('editModal').classList.remove('show');
+      }
+
+      function showUploadModal() {
+        document.getElementById('uploadModal').classList.add('show');
+        document.getElementById('uploadStatus').textContent = '';
+      }
+
+      function closeUploadModal() {
+        document.getElementById('uploadModal').classList.remove('show');
+      }
+
+      function showLoginModal(){
+        document.getElementById('loginStatus').textContent = '';
+        document.getElementById('loginId').value = id || '';
+        document.getElementById('loginPass').value = '';
+        document.getElementById('loginModal').classList.add('show');
+      }
+
+      function closeLoginModal(){
+        document.getElementById('loginModal').classList.remove('show');
+      }
+
+      async function loadProfile() {
+        try {
+          const res = await fetch(`/api/profile?id=${encodeURIComponent(id)}`);
+          if (!res.ok) {
+            document.getElementById('createSection').style.display = 'block';
+            document.getElementById('profileWrap').style.display = 'none';
+            return;
+          }
+          const j = await res.json();
+          currentProfile = j;
+          document.getElementById('profileName').textContent = j.name || 'Remembering';
+          document.getElementById('profileBio').textContent = j.bio || '';
+          if (j.photo) {
+            document.getElementById('profilePhoto').src = j.photo;
+            document.getElementById('profilePhoto').style.display = 'block';
+          }
+          document.getElementById('createSection').style.display = 'none';
+          document.getElementById('profileWrap').style.display = 'block';
+
+          // Render photos, videos, and audios
+          renderPhotos(j.photos || []);
+          renderVideos(j.videos || []);
+
+          // Load audios from auto-discovery
+          try {
+            const a = await fetch(`/api/audios?id=${encodeURIComponent(id)}`);
+            if (a.ok) {
+              const aj = await a.json();
+              renderAudios(aj.audios || []);
+            }
+          } catch (e) { console.warn('Audios fetch failed', e); }
+
+          // Load QR
+          try {
+            const q = await fetch(`/api/profile-qr?id=${encodeURIComponent(id)}`);
+            if (q.ok) {
+              const qj = await q.json();
+              document.getElementById('profileQr').src = qj.dataUrl;
+            }
+          } catch (e) { console.warn('QR fetch failed', e); }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      function renderPhotos(photos) {
+        const container = document.getElementById('photosContainer');
+        container.innerHTML = '';
+        if (photos.length === 0) {
+          document.getElementById('photosSection').style.display = 'none';
+          return;
+        }
+        document.getElementById('photosSection').style.display = 'block';
+        photos.forEach(p => {
+          const div = document.createElement('div');
+          div.className = 'media-item';
+          const img = document.createElement('img');
+          img.src = p.url;
+          img.alt = p.name;
+          div.appendChild(img);
+          container.appendChild(div);
+        });
+      }
+
+      function renderVideos(videos) {
+        const container = document.getElementById('videosContainer');
+        container.innerHTML = '';
+        if (videos.length === 0) {
+          document.getElementById('videosSection').style.display = 'none';
+          return;
+        }
+        document.getElementById('videosSection').style.display = 'block';
+        videos.forEach(v => {
+          const div = document.createElement('div');
+          div.className = 'media-item';
+          const video = document.createElement('video');
+          video.controls = true;
+          video.src = v.url;
+          video.style.width = '100%';
+          video.style.height = '150px';
+          video.style.objectFit = 'cover';
+          div.appendChild(video);
+          container.appendChild(div);
+        });
+      }
+
+      function renderAudios(audios) {
+        const container = document.getElementById('audiosContainer');
+        container.innerHTML = '';
+        if (audios.length === 0) {
+          document.getElementById('audiosSection').style.display = 'none';
+          return;
+        }
+        document.getElementById('audiosSection').style.display = 'block';
+        audios.forEach(a => {
+          const div = document.createElement('div');
+          div.className = 'audio-item';
+          const name = document.createElement('div');
+          name.className = 'audio-name';
+          name.textContent = a.name;
+          const audio = document.createElement('audio');
+          audio.controls = true;
+          audio.src = a.url;
+          div.appendChild(name);
+          div.appendChild(audio);
+          container.appendChild(div);
+        });
+      }
+
+      document.getElementById('editForm').addEventListener('submit', async ev => {
+        ev.preventDefault();
+        const payload = {
+          name: document.getElementById('editName').value,
+          bio: document.getElementById('editBio').value,
+          newPhoto: document.getElementById('editPhoto').value,
+          passcode: document.getElementById('editPass').value
+        };
+        const res = await fetch(`/api/edit-profile?id=${encodeURIComponent(id)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+        if (res.ok) {
+          closeEditModal();
+          loadProfile();
+        } else {
+          alert('Failed to save: ' + await res.text());
+        }
+      });
+
+      document.getElementById('uploadForm').addEventListener('submit', async ev => {
+        ev.preventDefault();
+        const passcode = document.getElementById('uploadPass').value;
+        const photos = document.getElementById('uploadPhotos').files;
+        const videos = document.getElementById('uploadVideos').files;
+        const audios = document.getElementById('uploadAudios').files;
+
+        if (photos.length === 0 && videos.length === 0 && audios.length === 0) {
+          document.getElementById('uploadStatus').textContent = 'Please select at least one file';
+          return;
+        }
+
+        const fd = new FormData();
+        fd.append('passcode', passcode);
+        for (const f of photos) fd.append('photos', f);
+        for (const f of videos) fd.append('videos', f);
+        for (const f of audios) fd.append('audios', f);
+
+        document.getElementById('uploadStatus').textContent = 'Uploading...';
+        const res = await fetch(`/api/upload?id=${encodeURIComponent(id)}`, { method: 'POST', body: fd });
+        if (res.ok) {
+          document.getElementById('uploadStatus').textContent = 'Uploaded successfully!';
+          setTimeout(() => {
+            closeUploadModal();
+            loadProfile();
+          }, 1000);
+        } else {
+          document.getElementById('uploadStatus').textContent = 'Error: ' + await res.text();
+        }
+      });
+
+        document.getElementById('loginForm').addEventListener('submit', async ev => {
+          ev.preventDefault();
+          const pid = document.getElementById('loginId').value.trim() || id;
+          const pass = document.getElementById('loginPass').value;
+          if (!pid) { document.getElementById('loginStatus').textContent = 'Missing profile id'; return; }
+          const res = await fetch('/api/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: pid, passcode: pass }) });
+          if (res.ok) {
+            // store in sessionStorage for this profile
+            sessionStorage.setItem('memorial_pass_' + pid, pass);
+            document.getElementById('loginStatus').textContent = 'Logged in';
+            setTimeout(() => { closeLoginModal(); if (!id) { id = pid; location.search = '?id=' + encodeURIComponent(pid); } else loadProfile(); }, 500);
+          } else {
+            document.getElementById('loginStatus').textContent = 'Login failed: ' + await res.text();
+          }
+        });
+
+        // Prefill passcodes from session when opening upload/edit
+        const origShowUploadModal = showUploadModal;
+        showUploadModal = function(){
+          const pass = sessionStorage.getItem('memorial_pass_' + (id || '')) || '';
+          document.getElementById('uploadPass').value = pass;
+          origShowUploadModal();
+        }
+
+        const origShowEditModal = showEditModal;
+        showEditModal = function(){
+          const pass = sessionStorage.getItem('memorial_pass_' + (id || '')) || '';
+          document.getElementById('editPass').value = pass;
+          origShowEditModal();
+        }
+
+      document.getElementById('createForm').addEventListener('submit', async ev => {
+        ev.preventDefault();
+        const f = ev.target;
+        let newId = f.id.value.trim();
+        if (!newId) { newId = slugify(f.name.value) || ('memorial' + Date.now()); }
+        const payload = { id: newId, name: f.name.value.trim(), passcode: f.passcode.value, bio: f.bio.value };
+        const res = await fetch('/api/create-profile', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+        if (res.status === 201) {
+          location.search = '?id=' + encodeURIComponent(payload.id);
+        } else {
+          document.getElementById('createResult').textContent = 'Error: ' + await res.text();
+        }
+      });
+
+      if (id) {
+        loadProfile();
+      } else {
+        document.getElementById('createSection').style.display = 'block';
+        document.getElementById('profileWrap').style.display = 'none';
+      }
+    </script>
+  </body>
+</html>

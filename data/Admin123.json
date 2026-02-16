@@ -1,0 +1,22 @@
+{
+  "id": "Admin123",
+  "name": "Cauley",
+  "bio": "ss",
+  "photo": "",
+  "passHash": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+  "photos": [
+    {
+      "name": "WIN_20250108_18_24_14_Pro.jpg",
+      "url": "/uploads/Admin123/photos/1771149875019-WIN_20250108_18_24_14_Pro.jpg",
+      "ts": 1771149875137
+    }
+  ],
+  "audios": [
+    {
+      "name": "Lost in the Quiet.mp3",
+      "url": "/uploads/Admin123/audios/1771149875025-Lost_in_the_Quiet.mp3",
+      "ts": 1771149875140
+    }
+  ],
+  "videos": []
+}
