@@ -236,10 +236,10 @@ function extractPlaylistInfo(url) {
     return { platform: 'spotify', id: spotifyMatch[1], url: `https://open.spotify.com/playlist/${spotifyMatch[1]}` };
   }
   
-  // Amazon Music: https://music.amazon.com/playlists/... or amazon music link
-  const amazonMatch = url.match(/music\.amazon\.com\/playlists\/([a-zA-Z0-9]+)/);
+  // Amazon Music: handles all regional domains (.com, .co.uk, etc) and both /playlists/ and /user-playlists/
+  const amazonMatch = url.match(/music\.amazon\.[a-z.]+\/(playlists|user-playlists)\/([a-zA-Z0-9\-]+)/);
   if (amazonMatch) {
-    return { platform: 'amazon', id: amazonMatch[1], url: url };
+    return { platform: 'amazon', id: amazonMatch[2], url: url };
   }
   
   return null;
