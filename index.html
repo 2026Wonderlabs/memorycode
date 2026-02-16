@@ -275,6 +275,7 @@
       const params = new URLSearchParams(location.search);
       let id = params.get('id');
       let currentProfile = null;
+      let currentUserPass = null;
 
       function slugify(text) {
         return (text || '').toString().toLowerCase().trim()
