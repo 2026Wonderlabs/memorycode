@@ -47,9 +47,17 @@
       #createSection h2{font-size:1.6rem;margin-bottom:14px}
       #createForm{max-width:520px;margin:0 auto;text-align:left}
       .small{font-size:0.92rem;color:#7e6f66}
-      @keyframes flicker { 0%,100%{opacity:0.8} 50%{opacity:1} }
+      @keyframes flicker { 
+        0%{opacity:0.7;transform:scale(1)} 
+        25%{opacity:0.9;transform:scale(1.05)} 
+        50%{opacity:1;transform:scale(1)} 
+        75%{opacity:0.85;transform:scale(1.02)} 
+        100%{opacity:0.7;transform:scale(1)} 
+      }
       .candle{text-align:center;padding:20px;margin:20px 0}
-      .candle-flame{font-size:2.5rem;display:inline-block;animation:flicker 1.5s infinite}
+      .candle-flame{font-size:2.5rem;display:inline-block;cursor:pointer;transition:all 0.3s ease}
+      .candle-flame.unlit{opacity:0.3;color:#888;text-shadow:none}
+      .candle-flame.lit{animation:flicker 1.5s infinite;text-shadow:0 0 15px rgba(255,140,0,0.8),0 0 25px rgba(255,69,0,0.5)}
       .story-section{background:#fffaf7;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #8b6b4a}
       .quote-section{background:#efe9e2;padding:16px;border-radius:8px;margin:16px 0;text-align:center;font-style:italic;color:#50443f}
       .messages-section{margin:28px 0}
@@ -95,8 +103,8 @@
       </div>
 
       <div class="candle">
-        <div class="candle-flame">🕯️</div>
-        <p style="font-size:0.9rem;color:#8b8178;margin-top:8px">Light a candle to honour their memory</p>
+        <div class="candle-flame unlit" id="candleFlame" onclick="toggleCandle()" title="Click to light">🕯️</div>
+        <p style="font-size:0.9rem;color:#8b8178;margin-top:8px;cursor:pointer" onclick="toggleCandle()">Light a candle to honour their memory</p>
       </div>
 
       <div class="section" id="storySection" style="display:none">
@@ -372,7 +380,7 @@
           div.className = 'media-item';
           const img = document.createElement('img');
           img.src = p.url;
-          img.alt = p.name;
+          img.alt = p.displayName || p.name;
           div.appendChild(img);
           const delBtn = document.createElement('button');
           delBtn.className = 'media-delete-btn';
@@ -427,7 +435,7 @@
           div.className = 'audio-item';
           const name = document.createElement('div');
           name.className = 'audio-name';
-          name.textContent = a.name;
+          name.textContent = a.displayName || a.name;
           const audio = document.createElement('audio');
           audio.controls = true;
           audio.src = a.url;
@@ -624,6 +632,17 @@
         updateAuthUI();
         // Go back to create page
         location.search = '';
+      }
+
+      function toggleCandle(){
+        const flame = document.getElementById('candleFlame');
+        if (flame.classList.contains('unlit')) {
+          flame.classList.remove('unlit');
+          flame.classList.add('lit');
+        } else {
+          flame.classList.remove('lit');
+          flame.classList.add('unlit');
+        }
       }
       
       // On page load: if not already from URL, check sessionStorage for last logged-in profile and auto-load

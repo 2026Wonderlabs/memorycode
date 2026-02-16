@@ -150,15 +150,15 @@ app.post('/api/upload', (req, res) => {
       }
       const subdirPath = path.join(UPLOADS_DIR, id, subdir);
       fs.mkdirSync(subdirPath, { recursive: true });
-      const newPath = path.join(subdirPath, path.basename(f.path));
+      const newPath = path.join(subdirPath, f.filename);
       fs.renameSync(f.path, newPath);
-      const rel = `${relBase}/${subdir}/${path.basename(f.path)}`;
+      const rel = `${relBase}/${subdir}/${f.filename}`;
       if (subdir === 'photos') {
-        meta.photos.push({ name: f.originalname, url: rel, ts: Date.now() });
+        meta.photos.push({ name: f.filename, displayName: f.originalname, url: rel, ts: Date.now() });
       } else if (subdir === 'audios') {
-        meta.audios.push({ name: f.originalname, url: rel, ts: Date.now() });
+        meta.audios.push({ name: f.filename, displayName: f.originalname, url: rel, ts: Date.now() });
       } else if (subdir === 'videos') {
-        meta.videos.push({ name: f.originalname, url: rel, ts: Date.now() });
+        meta.videos.push({ name: f.filename, displayName: f.originalname, url: rel, ts: Date.now() });
       }
     }
 
