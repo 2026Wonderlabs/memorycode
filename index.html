@@ -34,6 +34,11 @@
       .form-group textarea{resize:vertical;min-height:100px}
       .modal-buttons{display:flex;gap:10px;margin-top:18px}
       .modal-buttons button{flex:1}
+      .upload-preview{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+      .upload-preview .preview-item{width:120px;border-radius:8px;border:1px solid #efe9e2;background:#fffaf7;padding:6px;position:relative}
+      .upload-preview .preview-item img{width:100%;height:80px;object-fit:cover;border-radius:6px}
+      .preview-name{font-size:0.85rem;color:#3b332f;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .preview-remove{position:absolute;right:6px;top:6px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer}
       #createSection{padding:22px;text-align:center}
       #createSection h2{font-size:1.6rem;margin-bottom:14px}
       #createForm{max-width:520px;margin:0 auto;text-align:left}
@@ -42,7 +47,7 @@
   </head>
   <body>
     <div style="position:fixed;right:18px;top:18px;z-index:1100">
-      <button class="btn secondary" onclick="showLoginModal()">Login</button>
+      <button id="globalAuthBtn" class="btn secondary" onclick="showLoginModal()">Login</button>
     </div>
     <main id="profileWrap" style="display:none">
       <div class="hero">
@@ -50,7 +55,7 @@
         <h1 id="profileName">Remembering</h1>
         <p id="profileBio" class="bio"></p>
         <button class="btn" onclick="showEditModal()">Edit Profile</button>
-        <button class="btn secondary" style="margin-left:10px" onclick="showLoginModal()">Login</button>
+        <button id="heroAuthBtn" class="btn secondary" style="margin-left:10px" onclick="showLoginModal()">Login</button>
         <button class="btn" style="background:#b89968;margin-left:10px" onclick="showUploadModal()">Upload Media</button>
       </div>
 
@@ -150,6 +155,7 @@
             <label>Audio (MP3, WAV, OGG)</label>
             <input type="file" accept="audio/*" multiple id="uploadAudios">
           </div>
+          <div id="uploadPreview" class="upload-preview" aria-live="polite"></div>
           <div class="modal-buttons">
             <button type="submit" class="btn">Upload Files</button>
             <button type="button" class="btn" style="background:#999" onclick="closeUploadModal()">Cancel</button>
@@ -392,6 +398,7 @@
             // store in sessionStorage for this profile
             sessionStorage.setItem('memorial_pass_' + pid, pass);
             document.getElementById('loginStatus').textContent = 'Logged in';
+            updateAuthUI();
             setTimeout(() => { closeLoginModal(); if (!id) { id = pid; location.search = '?id=' + encodeURIComponent(pid); } else loadProfile(); }, 500);
           } else {
             document.getElementById('loginStatus').textContent = 'Login failed: ' + await res.text();
@@ -433,6 +440,93 @@
         document.getElementById('createSection').style.display = 'block';
         document.getElementById('profileWrap').style.display = 'none';
       }
+
+      // Update auth UI (login -> logout) and wire upload previews
+      function updateAuthUI(){
+        const pid = id || '';
+        const pass = sessionStorage.getItem('memorial_pass_' + pid) || '';
+        const logged = !!pass;
+        const globalBtn = document.getElementById('globalAuthBtn');
+        const heroBtn = document.getElementById('heroAuthBtn');
+        if (globalBtn){
+          globalBtn.textContent = logged ? 'Logout' : 'Login';
+          globalBtn.onclick = logged ? logout : showLoginModal;
+        }
+        if (heroBtn){
+          heroBtn.textContent = logged ? 'Logout' : 'Login';
+          heroBtn.onclick = logged ? logout : showLoginModal;
+        }
+      }
+
+      function logout(){
+        const pid = id || '';
+        sessionStorage.removeItem('memorial_pass_' + pid);
+        updateAuthUI();
+        // If on profile page, reload to remove any prefills
+        if (id) loadProfile();
+      }
+
+      // Upload preview helpers
+      function mkPreviewItem(file, type, inputId){
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        const btn = document.createElement('button');
+        btn.className = 'preview-remove';
+        btn.type = 'button';
+        btn.textContent = '×';
+        btn.title = 'Remove';
+        btn.addEventListener('click', () => removeFileFromInput(inputId, file));
+        div.appendChild(btn);
+        if (type === 'image' && file.type.startsWith('image/')){
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(file);
+          div.appendChild(img);
+        } else {
+          const img = document.createElement('img');
+          // simple placeholder icons for audio/video/other
+          if (type === 'audio') img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="100%" height="100%" fill="%23fffaf7" stroke="%23efe9e2"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%233b332f" font-size="12">Audio</text></svg>';
+          else if (type === 'video') img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="100%" height="100%" fill="%23fffaf7" stroke="%23efe9e2"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%233b332f" font-size="12">Video</text></svg>';
+          else img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="100%" height="100%" fill="%23fffaf7" stroke="%23efe9e2"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%233b332f" font-size="12">File</text></svg>';
+          div.appendChild(img);
+        }
+        const n = document.createElement('div');
+        n.className = 'preview-name';
+        n.textContent = file.name;
+        div.appendChild(n);
+        return div;
+      }
+
+      function removeFileFromInput(inputId, fileToRemove){
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        const dt = new DataTransfer();
+        Array.from(input.files).forEach(f => {
+          if (!(f.name === fileToRemove.name && f.size === fileToRemove.size && f.lastModified === fileToRemove.lastModified)){
+            dt.items.add(f);
+          }
+        });
+        input.files = dt.files;
+        renderUploadPreviews();
+      }
+
+      function renderUploadPreviews(){
+        const preview = document.getElementById('uploadPreview');
+        preview.innerHTML = '';
+        const imgs = document.getElementById('uploadPhotos')?.files || [];
+        const vids = document.getElementById('uploadVideos')?.files || [];
+        const auds = document.getElementById('uploadAudios')?.files || [];
+        Array.from(imgs).forEach(f => preview.appendChild(mkPreviewItem(f, 'image', 'uploadPhotos')));
+        Array.from(vids).forEach(f => preview.appendChild(mkPreviewItem(f, 'video', 'uploadVideos')));
+        Array.from(auds).forEach(f => preview.appendChild(mkPreviewItem(f, 'audio', 'uploadAudios')));
+      }
+
+      ['uploadPhotos','uploadVideos','uploadAudios'].forEach(idc => {
+        const el = document.getElementById(idc);
+        if (el) el.addEventListener('change', renderUploadPreviews);
+      });
+
+      // initial UI update
+      updateAuthUI();
     </script>
   </body>
 </html>
