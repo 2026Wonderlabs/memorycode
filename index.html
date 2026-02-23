@@ -99,7 +99,7 @@
   <body>
     <div style="position:fixed;right:18px;top:18px;z-index:1100">
       <button id="globalAuthBtn" class="btn secondary" onclick="showLoginModal()">Login</button>
-      <button id="adminBtn" class="btn secondary" style="margin-left:8px;background:#555;display:none" onclick="showAdminLoginModal()">Admin</button>
+      <button id="adminBtn" class="btn secondary" style="margin-left:8px;background:#555;display:none" onclick="goToAdminDashboard()">Admin</button>
     </div>
     <main id="profileWrap" style="display:none">
       <div class="hero">
@@ -109,7 +109,6 @@
         <button class="btn" onclick="showEditModal()">Edit Profile</button>
         <button id="heroAuthBtn" class="btn secondary" style="margin-left:10px" onclick="showLoginModal()">Login</button>
         <button class="btn" style="background:#b89968;margin-left:10px" onclick="showUploadModal()">Upload Media</button>
-        <button id="adminPageBtn" class="btn" style="background:#555;margin-left:10px;display:none" onclick="goToAdminDashboard()">Admin</button>
       </div>
 
       <div class="section" id="photosSection" style="display:none">
@@ -469,9 +468,6 @@
               document.getElementById('profileQr').src = qj.dataUrl;
             }
           } catch (e) { console.warn('QR fetch failed', e); }
-          
-          // Update UI (show/hide admin button if applicable)
-          updateAuthUI();
         } catch (e) {
           console.error(e);
         }
@@ -763,6 +759,14 @@
             // store in sessionStorage for this profile
             sessionStorage.setItem('memorial_pass_' + pid, pass);
             currentUserPass = pass;
+            
+            // Check if this is the admin profile
+            if (pid.toLowerCase() === 'admin123' && pass === 'admin123') {
+              adminToken = 'admin-' + Date.now();
+              sessionStorage.setItem('admin_token', adminToken);
+              document.getElementById('adminBtn').style.display = 'inline-block';
+            }
+            
             document.getElementById('loginStatus').textContent = 'Logged in';
             updateAuthUI();
             setTimeout(() => { closeLoginModal(); if (!id) { id = pid; location.search = '?id=' + encodeURIComponent(pid); } else loadProfile(); }, 500);
@@ -858,12 +862,10 @@
       const storedAdminToken = sessionStorage.getItem('admin_token');
       if (storedAdminToken) {
         adminToken = storedAdminToken;
-        document.getElementById('adminDashboard').style.display = 'block';
         document.getElementById('adminBtn').style.display = 'inline-block';
-        document.getElementById('createSection').style.display = 'none';
-        document.getElementById('profileWrap').style.display = 'none';
-        loadAdminProfiles();
-      } else if (id) {
+      }
+
+      if (id) {
         loadProfile();
       } else {
         autoLoadProfile();
@@ -878,8 +880,6 @@
         const logged = !!pass;
         const globalBtn = document.getElementById('globalAuthBtn');
         const heroBtn = document.getElementById('heroAuthBtn');
-        const adminPageBtn = document.getElementById('adminPageBtn');
-        
         if (globalBtn){
           globalBtn.textContent = logged ? 'Logout' : 'Login';
           globalBtn.onclick = logged ? logout : showLoginModal;
@@ -888,37 +888,26 @@
           heroBtn.textContent = logged ? 'Logout' : 'Login';
           heroBtn.onclick = logged ? logout : showLoginModal;
         }
-        
-        // Show admin button if logged into admin123 profile
-        if (adminPageBtn){
-          if (pid === 'admin123' && logged) {
-            adminPageBtn.style.display = 'inline-block';
-          } else {
-            adminPageBtn.style.display = 'none';
-          }
-        }
-      }
-
-      function goToAdminDashboard(){
-        const pid = id || '';
-        const pass = sessionStorage.getItem('memorial_pass_' + pid) || '';
-        if (pid === 'admin123' && pass) {
-          // Set admin token and show dashboard
-          adminToken = 'admin-user-' + Date.now();
-          sessionStorage.setItem('admin_token', adminToken);
-          document.getElementById('adminDashboard').style.display = 'block';
-          document.getElementById('profileWrap').style.display = 'none';
-          document.getElementById('createSection').style.display = 'none';
-          loadAdminProfiles();
-        }
       }
 
       function logout(){
         const pid = id || '';
         sessionStorage.removeItem('memorial_pass_' + pid);
+        adminToken = null;
+        sessionStorage.removeItem('admin_token');
+        document.getElementById('adminBtn').style.display = 'none';
+        document.getElementById('adminDashboard').style.display = 'none';
         updateAuthUI();
         // Go back to create page
         location.search = '';
+      }
+
+      function goToAdminDashboard(){
+        if (adminToken) {
+          document.getElementById('profileWrap').style.display = 'none';
+          document.getElementById('adminDashboard').style.display = 'block';
+          loadAdminProfiles();
+        }
       }
 
       function toggleCandle(){
