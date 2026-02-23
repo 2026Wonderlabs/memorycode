@@ -99,7 +99,7 @@
   <body>
     <div style="position:fixed;right:18px;top:18px;z-index:1100">
       <button id="globalAuthBtn" class="btn secondary" onclick="showLoginModal()">Login</button>
-      <button class="btn secondary" style="margin-left:8px;background:#555" onclick="showAdminLoginModal()">Admin</button>
+      <button id="adminBtn" class="btn secondary" style="margin-left:8px;background:#555;display:none" onclick="showAdminLoginModal()">Admin</button>
     </div>
     <main id="profileWrap" style="display:none">
       <div class="hero">
@@ -774,10 +774,13 @@
           if (res.ok) {
             const j = await res.json();
             adminToken = j.token;
+            sessionStorage.setItem('admin_token', adminToken);
             closeAdminLoginModal();
             document.getElementById('adminDashboard').style.display = 'block';
+            document.getElementById('adminBtn').style.display = 'inline-block';
             document.getElementById('createSection').style.display = 'none';
             document.getElementById('profileWrap').style.display = 'none';
+            document.getElementById('adminPassword').value = '';
             loadAdminProfiles();
           } else {
             document.getElementById('adminLoginStatus').textContent = 'Invalid password';
@@ -847,7 +850,16 @@
         }
       });
 
-      if (id) {
+      // Check for admin session on page load
+      const storedAdminToken = sessionStorage.getItem('admin_token');
+      if (storedAdminToken) {
+        adminToken = storedAdminToken;
+        document.getElementById('adminDashboard').style.display = 'block';
+        document.getElementById('adminBtn').style.display = 'inline-block';
+        document.getElementById('createSection').style.display = 'none';
+        document.getElementById('profileWrap').style.display = 'none';
+        loadAdminProfiles();
+      } else if (id) {
         loadProfile();
       } else {
         autoLoadProfile();
@@ -983,7 +995,9 @@
 
       function logoutAdmin() {
         adminToken = null;
+        sessionStorage.removeItem('admin_token');
         document.getElementById('adminDashboard').style.display = 'none';
+        document.getElementById('adminBtn').style.display = 'none';
         document.getElementById('createSection').style.display = 'block';
         document.getElementById('adminPassword').value = '';
         document.getElementById('adminLoginStatus').textContent = '';

@@ -1,65 +1,47 @@
 {
   "id": "Admin123",
   "name": "Cauley",
-  "bio": "ss",
-  "photo": "/uploads/admin123/photos/1771275874134-Screenshot_2025-01-02_161318.png",
+  "bio": "a",
+  "photo": "/uploads/Admin123/photos/1771878472348-Screenshot_2025-01-02_161318.png",
+  "story": "a",
+  "quote": "a",
   "passHash": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
   "photos": [
     {
-      "name": "WIN_20250108_18_24_14_Pro.jpg",
-      "url": "/uploads/Admin123/photos/1771149875019-WIN_20250108_18_24_14_Pro.jpg",
-      "ts": 1771149875137
+      "name": "1771878047240-Screenshot_2025-01-02_161318.png",
+      "displayName": "Screenshot 2025-01-02 161318.png",
+      "url": "/uploads/Admin123/photos/1771878047240-Screenshot_2025-01-02_161318.png",
+      "ts": 1771878047312
     },
     {
-      "name": "Screenshot 2025-01-02 161318.png",
-      "url": "/uploads/admin123/photos/1771275874134-Screenshot_2025-01-02_161318.png",
-      "ts": 1771275874152
-    },
-    {
-      "name": "Screenshot (6).png",
-      "url": "/uploads/admin123/photos/1771276447423-Screenshot__6_.png",
-      "ts": 1771276447464
+      "name": "1771878344916-Screenshot_2025-01-02_161318.png",
+      "displayName": "Screenshot 2025-01-02 161318.png",
+      "url": "/uploads/Admin123/photos/1771878344916-Screenshot_2025-01-02_161318.png",
+      "ts": 1771878344948
     }
   ],
   "audios": [
     {
-      "name": "Lost in the Quiet.mp3",
-      "url": "/uploads/Admin123/audios/1771149875025-Lost_in_the_Quiet.mp3",
-      "ts": 1771149875140
-    },
-    {
-      "name": "Lost in the Quiet.mp3",
-      "url": "/uploads/admin123/audios/1771276635996-Lost_in_the_Quiet.mp3",
-      "ts": 1771276636212
-    },
-    {
-      "name": "1771278467846-echoes_of_us.mp3",
-      "displayName": "echoes of us.mp3",
-      "url": "/uploads/admin123/audios/1771278467846-echoes_of_us.mp3",
-      "ts": 1771278467920
+      "name": "1771878562168-Lost_in_the_Quiet.mp3",
+      "displayName": "Lost in the Quiet.mp3",
+      "url": "/uploads/Admin123/audios/1771878562168-Lost_in_the_Quiet.mp3",
+      "ts": 1771878562242
     }
   ],
   "videos": [],
-  "story": "a",
-  "quote": "a",
+  "messages": [],
   "playlists": [
     {
       "platform": "amazon",
       "id": "98a5e948cfe94e0a95364c39b46173ba",
-      "url": "https://music.amazon.co.uk/user-playlists/98a5e948cfe94e0a95364c39b46173ba?marketplaceId=A1F83G8C2ARO7P&musicTerritory=GB&ref=dm_sh_56fmsLbvaS12cEI4VXfH8Wcas",
-      "ts": 1771277731079
+      "url": "https://music.amazon.co.uk/user-playlists/98a5e948cfe94e0a95364c39b46173ba?marketplaceId=A1F83G8C2ARO7P&musicTerritory=GB&ref=dm_sh_SA1ZPVTBA9LMNklbKVQwNKgAq",
+      "ts": 1771878343168
     },
     {
-      "platform": "amazon",
-      "id": "98a5e948cfe94e0a95364c39b46173ba",
-      "url": "https://music.amazon.co.uk/user-playlists/98a5e948cfe94e0a95364c39b46173ba?marketplaceId=A1F83G8C2ARO7P&musicTerritory=GB&ref=dm_sh_NdmM0jOgGJblMDpZqK4nXugwv",
-      "ts": 1771277863093
-    },
-    {
-      "platform": "amazon",
-      "id": "98a5e948cfe94e0a95364c39b46173ba",
-      "url": "https://music.amazon.co.uk/user-playlists/98a5e948cfe94e0a95364c39b46173ba?marketplaceId=A1F83G8C2ARO7P&musicTerritory=GB&ref=dm_sh_NdmM0jOgGJblMDpZqK4nXugwv",
-      "ts": 1771278012072
+      "platform": "spotify",
+      "id": "6EUlwQkN6nQ01w7xIDhSmU",
+      "url": "https://open.spotify.com/playlist/6EUlwQkN6nQ01w7xIDhSmU",
+      "ts": 1771878470557
     }
   ]
 }
