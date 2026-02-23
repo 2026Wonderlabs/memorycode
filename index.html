@@ -676,6 +676,7 @@
           if (res.ok) {
             // store in sessionStorage for this profile
             sessionStorage.setItem('memorial_pass_' + pid, pass);
+            currentUserPass = pass;
             document.getElementById('loginStatus').textContent = 'Logged in';
             updateAuthUI();
             setTimeout(() => { closeLoginModal(); if (!id) { id = pid; location.search = '?id=' + encodeURIComponent(pid); } else loadProfile(); }, 500);
@@ -696,6 +697,7 @@
         showEditModal = function(){
           const pass = sessionStorage.getItem('memorial_pass_' + (id || '')) || '';
           document.getElementById('editPass').value = pass;
+          currentUserPass = pass;
           origShowEditModal();
         }
 
