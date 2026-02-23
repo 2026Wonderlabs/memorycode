@@ -109,6 +109,7 @@
         <button class="btn" onclick="showEditModal()">Edit Profile</button>
         <button id="heroAuthBtn" class="btn secondary" style="margin-left:10px" onclick="showLoginModal()">Login</button>
         <button class="btn" style="background:#b89968;margin-left:10px" onclick="showUploadModal()">Upload Media</button>
+        <button id="adminPageBtn" class="btn" style="background:#555;margin-left:10px;display:none" onclick="goToAdminDashboard()">Admin</button>
       </div>
 
       <div class="section" id="photosSection" style="display:none">
@@ -468,6 +469,9 @@
               document.getElementById('profileQr').src = qj.dataUrl;
             }
           } catch (e) { console.warn('QR fetch failed', e); }
+          
+          // Update UI (show/hide admin button if applicable)
+          updateAuthUI();
         } catch (e) {
           console.error(e);
         }
@@ -874,6 +878,8 @@
         const logged = !!pass;
         const globalBtn = document.getElementById('globalAuthBtn');
         const heroBtn = document.getElementById('heroAuthBtn');
+        const adminPageBtn = document.getElementById('adminPageBtn');
+        
         if (globalBtn){
           globalBtn.textContent = logged ? 'Logout' : 'Login';
           globalBtn.onclick = logged ? logout : showLoginModal;
@@ -881,6 +887,29 @@
         if (heroBtn){
           heroBtn.textContent = logged ? 'Logout' : 'Login';
           heroBtn.onclick = logged ? logout : showLoginModal;
+        }
+        
+        // Show admin button if logged into admin123 profile
+        if (adminPageBtn){
+          if (pid === 'admin123' && logged) {
+            adminPageBtn.style.display = 'inline-block';
+          } else {
+            adminPageBtn.style.display = 'none';
+          }
+        }
+      }
+
+      function goToAdminDashboard(){
+        const pid = id || '';
+        const pass = sessionStorage.getItem('memorial_pass_' + pid) || '';
+        if (pid === 'admin123' && pass) {
+          // Set admin token and show dashboard
+          adminToken = 'admin-user-' + Date.now();
+          sessionStorage.setItem('admin_token', adminToken);
+          document.getElementById('adminDashboard').style.display = 'block';
+          document.getElementById('profileWrap').style.display = 'none';
+          document.getElementById('createSection').style.display = 'none';
+          loadAdminProfiles();
         }
       }
 
