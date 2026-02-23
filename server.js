@@ -288,4 +288,98 @@ app.post('/api/delete-playlist', (req, res) => {
   res.send('Playlist deleted');
 });
 
+// Admin endpoints
+const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
+const adminHashPass = hashPass(ADMIN_PASS);
+
+app.post('/api/admin-login', (req, res) => {
+  const { password } = req.body || {};
+  if (!password) return res.status(400).send('Missing password');
+  
+  if (hashPass(password) === adminHashPass) {
+    res.json({ success: true, token: Buffer.from('admin-' + Date.now()).toString('base64') });
+  } else {
+    res.status(403).send('Invalid admin password');
+  }
+});
+
+app.get('/api/admin-profiles', (req, res) => {
+  const auth = req.headers.authorization || '';
+  if (!auth.startsWith('Bearer ')) return res.status(403).send('Unauthorized');
+  
+  // Simple token validation - just check it starts with 'admin-'
+  const token = auth.slice(7);
+  if (!token.startsWith('YWRtaW4t')) return res.status(403).send('Unauthorized'); // base64 'admin-'
+  
+  const profiles = [];
+  if (fs.existsSync(DATA_DIR)) {
+    fs.readdirSync(DATA_DIR).forEach(fname => {
+      if (fname.endsWith('.json')) {
+        const pData = JSON.parse(fs.readFileSync(path.join(DATA_DIR, fname), 'utf8'));
+        profiles.push({ id: pData.id, name: pData.name, bio: pData.bio });
+      }
+    });
+  }
+  res.json({ profiles });
+});
+
+app.post('/api/admin-create-profile', (req, res) => {
+  const auth = req.headers.authorization || '';
+  if (!auth.startsWith('Bearer ')) return res.status(403).send('Unauthorized');
+  const token = auth.slice(7);
+  if (!token.startsWith('YWRtaW4t')) return res.status(403).send('Unauthorized');
+  
+  const { id, name, passcode, bio } = req.body || {};
+  if (!id || !/^[A-Za-z0-9_-]+$/.test(id)) return res.status(400).send('Invalid id');
+  const file = path.join(DATA_DIR, `${id}.json`);
+  if (fs.existsSync(file)) return res.status(409).send('Profile exists');
+  
+  const passHash = hashPass(passcode || '');
+  const profile = { id, name: name || '', bio: bio || '', photo: '', story: '', quote: '', passHash, photos: [], audios: [], videos: [], messages: [], playlists: [] };
+  fs.mkdirSync(path.join(UPLOADS_DIR, id), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(profile, null, 2));
+  res.status(201).json({ id, name });
+});
+
+app.post('/api/admin-change-password', (req, res) => {
+  const auth = req.headers.authorization || '';
+  if (!auth.startsWith('Bearer ')) return res.status(403).send('Unauthorized');
+  const token = auth.slice(7);
+  if (!token.startsWith('YWRtaW4t')) return res.status(403).send('Unauthorized');
+  
+  const { profileId, newPassword } = req.body || {};
+  if (!profileId || !newPassword) return res.status(400).send('Missing fields');
+  
+  const file = path.join(DATA_DIR, `${profileId}.json`);
+  if (!fs.existsSync(file)) return res.status(404).send('Profile not found');
+  
+  let profile = JSON.parse(fs.readFileSync(file, 'utf8'));
+  profile.passHash = hashPass(newPassword);
+  fs.writeFileSync(file, JSON.stringify(profile, null, 2));
+  res.send('Password changed');
+});
+
+app.post('/api/admin-delete-profile', (req, res) => {
+  const auth = req.headers.authorization || '';
+  if (!auth.startsWith('Bearer ')) return res.status(403).send('Unauthorized');
+  const token = auth.slice(7);
+  if (!token.startsWith('YWRtaW4t')) return res.status(403).send('Unauthorized');
+  
+  const { profileId } = req.body || {};
+  if (!profileId) return res.status(400).send('Missing profileId');
+  
+  const file = path.join(DATA_DIR, `${profileId}.json`);
+  if (!fs.existsSync(file)) return res.status(404).send('Profile not found');
+  
+  fs.unlinkSync(file);
+  
+  // Delete uploads folder
+  const uploadDir = path.join(UPLOADS_DIR, profileId);
+  if (fs.existsSync(uploadDir)) {
+    fs.rmSync(uploadDir, { recursive: true, force: true });
+  }
+  
+  res.send('Profile deleted');
+});
+
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

@@ -75,6 +75,22 @@
       .platform-badge.spotify{background:#1DB954}
       .platform-badge.amazon{background:#FF9900}
       .playlist-delete{background:rgba(0,0,0,0.2);color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.85rem}
+      .admin-link{position:fixed;bottom:20px;right:20px;background:#333;color:#fff;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:0.9rem;text-decoration:none;z-index:100}
+      .admin-link:hover{background:#555}
+      #adminDashboard{display:none;max-width:900px;margin:40px auto;padding:20px}
+      #adminDashboard h1{color:#2b2724;margin-bottom:20px}
+      .admin-section{background:#fffaf7;padding:20px;border-radius:8px;margin-bottom:20px;border-left:4px solid #8b6b4a}
+      .admin-section h2{font-size:1.1rem;margin-bottom:14px;color:#3b332f}
+      .admin-grid{display:grid;gap:12px}
+      .admin-item{background:#fff;padding:12px;border-radius:6px;border:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
+      .admin-item-name{font-weight:600;color:#3b332f}
+      .admin-item-bio{font-size:0.85rem;color:#8b8178}
+      .admin-buttons{display:flex;gap:8px}
+      .admin-btn{padding:6px 12px;border:none;border-radius:4px;cursor:pointer;font-size:0.85rem}
+      .admin-btn.edit{background:#8b6b4a;color:#fff}
+      .admin-btn.delete{background:#d9534f;color:#fff}
+      .admin-btn.edit:hover{background:#6f5943}
+      .admin-btn.delete:hover{background:#c9302c}
       @media (max-width:600px){
         .media-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
       }
@@ -83,6 +99,7 @@
   <body>
     <div style="position:fixed;right:18px;top:18px;z-index:1100">
       <button id="globalAuthBtn" class="btn secondary" onclick="showLoginModal()">Login</button>
+      <button class="btn secondary" style="margin-left:8px;background:#555" onclick="showAdminLoginModal()">Admin</button>
     </div>
     <main id="profileWrap" style="display:none">
       <div class="hero">
@@ -146,6 +163,44 @@
       <div id="profileQrSection" style="text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #e0ddd9">
         <p class="small">Share this memorial with a QR code:</p>
         <img id="profileQr" src="" alt="QR code" style="width:200px;margin-top:12px">
+      </div>
+    </main>
+
+    <main id="adminDashboard">
+      <h1>Admin Dashboard</h1>
+      
+      <div class="admin-section">
+        <h2>Create New Memorial</h2>
+        <form id="adminCreateForm" style="max-width:400px">
+          <div class="form-group">
+            <label>Profile ID</label>
+            <input id="adminCreateId" type="text" placeholder="profile-id" required>
+          </div>
+          <div class="form-group">
+            <label>Name</label>
+            <input id="adminCreateName" type="text" placeholder="Full name" required>
+          </div>
+          <div class="form-group">
+            <label>Biography</label>
+            <textarea id="adminCreateBio" placeholder="Short biography" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Initial Passcode</label>
+            <input id="adminCreatePass" type="text" placeholder="Passcode" required>
+          </div>
+          <button type="submit" class="btn" style="width:100%">Create Memorial</button>
+          <div id="adminCreateStatus" class="small" style="margin-top:8px;text-align:center"></div>
+        </form>
+      </div>
+
+      <div class="admin-section">
+        <h2>Manage Memorials</h2>
+        <button class="btn" onclick="loadAdminProfiles()" style="margin-bottom:16px">Refresh List</button>
+        <div id="adminProfilesList" class="admin-grid"></div>
+      </div>
+
+      <div style="text-align:center;margin-top:40px">
+        <button class="btn" style="background:#999" onclick="logoutAdmin()">Logout Admin</button>
       </div>
     </main>
 
@@ -271,6 +326,23 @@
       </div>
     </div>
 
+    <div id="adminLoginModal" class="modal">
+      <div class="modal-content" style="max-width:400px">
+        <h3>Admin Login</h3>
+        <form id="adminLoginForm">
+          <div class="form-group">
+            <label>Admin Password</label>
+            <input id="adminPassword" type="password" placeholder="Enter admin password" required>
+          </div>
+          <div class="modal-buttons">
+            <button type="submit" class="btn">Login</button>
+            <button type="button" class="btn" style="background:#999" onclick="closeAdminLoginModal()">Cancel</button>
+          </div>
+          <div id="adminLoginStatus" class="small" style="margin-top:10px;text-align:center;color:#c53030"></div>
+        </form>
+      </div>
+    </div>
+
     <script>
       const params = new URLSearchParams(location.search);
       let id = params.get('id');
@@ -317,6 +389,16 @@
       function closeLoginModal(){
         document.getElementById('loginModal').classList.remove('show');
       }
+
+      function showAdminLoginModal(){
+        document.getElementById('adminLoginModal').classList.add('show');
+      }
+
+      function closeAdminLoginModal(){
+        document.getElementById('adminLoginModal').classList.remove('show');
+      }
+
+      let adminToken = null;
 
       async function loadProfile() {
         try {
@@ -685,6 +767,56 @@
           }
         });
 
+        document.getElementById('adminLoginForm').addEventListener('submit', async ev => {
+          ev.preventDefault();
+          const pass = document.getElementById('adminPassword').value;
+          const res = await fetch('/api/admin-login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: pass }) });
+          if (res.ok) {
+            const j = await res.json();
+            adminToken = j.token;
+            closeAdminLoginModal();
+            document.getElementById('adminDashboard').style.display = 'block';
+            document.getElementById('createSection').style.display = 'none';
+            document.getElementById('profileWrap').style.display = 'none';
+            loadAdminProfiles();
+          } else {
+            document.getElementById('adminLoginStatus').textContent = 'Invalid password';
+          }
+        });
+
+        document.getElementById('adminCreateForm').addEventListener('submit', async ev => {
+          ev.preventDefault();
+          const profileId = document.getElementById('adminCreateId').value.trim();
+          const name = document.getElementById('adminCreateName').value.trim();
+          const bio = document.getElementById('adminCreateBio').value.trim();
+          const pass = document.getElementById('adminCreatePass').value.trim();
+          const status = document.getElementById('adminCreateStatus');
+          
+          if (!profileId || !name || !pass) {
+            status.textContent = 'All fields required';
+            status.style.color = '#c53030';
+            return;
+          }
+          
+          try {
+            const res = await fetch('/api/admin-create-profile', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + adminToken },
+              body: JSON.stringify({ id: profileId, name, bio, passcode: pass })
+            });
+            
+            if (!res.ok) throw new Error(await res.text());
+            
+            status.textContent = '✓ Memorial created!';
+            status.style.color = '#2f855a';
+            document.getElementById('adminCreateForm').reset();
+            setTimeout(() => { loadAdminProfiles(); }, 500);
+          } catch (err) {
+            status.textContent = 'Error: ' + err.message;
+            status.style.color = '#c53030';
+          }
+        });
+
         // Prefill passcodes from session when opening upload/edit
         const origShowUploadModal = showUploadModal;
         showUploadModal = function(){
@@ -781,6 +913,80 @@
             break; // Try only the first one found
           }
         }
+      }
+
+      async function loadAdminProfiles() {
+        if (!adminToken) return;
+        try {
+          const res = await fetch('/api/admin-profiles', {
+            headers: { 'authorization': 'Bearer ' + adminToken }
+          });
+          if (!res.ok) throw new Error('Failed to load profiles');
+          const j = await res.json();
+          const container = document.getElementById('adminProfilesList');
+          container.innerHTML = j.profiles.map(p => `
+            <div class="admin-item">
+              <div>
+                <div class="admin-item-name">${p.name}</div>
+                <div class="admin-item-bio">ID: ${p.id}</div>
+              </div>
+              <div class="admin-buttons">
+                <button class="admin-btn edit" onclick="showAdminEditModal('${p.id}', '${p.name}')">Edit</button>
+                <button class="admin-btn delete" onclick="adminDeleteProfile('${p.id}')">Delete</button>
+              </div>
+            </div>
+          `).join('');
+        } catch (err) {
+          alert('Error loading profiles: ' + err.message);
+        }
+      }
+
+      function showAdminEditModal(profileId, profileName) {
+        const newPass = prompt(`Enter new passcode for "${profileName}":`, '');
+        if (newPass) {
+          adminChangePassword(profileId, newPass);
+        }
+      }
+
+      async function adminChangePassword(profileId, newPassword) {
+        if (!adminToken) return;
+        try {
+          const res = await fetch('/api/admin-change-password', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + adminToken },
+            body: JSON.stringify({ profileId, newPassword })
+          });
+          if (!res.ok) throw new Error(await res.text());
+          alert('Password changed successfully');
+        } catch (err) {
+          alert('Error: ' + err.message);
+        }
+      }
+
+      async function adminDeleteProfile(profileId) {
+        if (!adminToken) return;
+        if (!confirm(`Are you sure you want to delete this memorial? This cannot be undone.`)) return;
+        
+        try {
+          const res = await fetch('/api/admin-delete-profile', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + adminToken },
+            body: JSON.stringify({ profileId })
+          });
+          if (!res.ok) throw new Error(await res.text());
+          alert('Memorial deleted');
+          loadAdminProfiles();
+        } catch (err) {
+          alert('Error: ' + err.message);
+        }
+      }
+
+      function logoutAdmin() {
+        adminToken = null;
+        document.getElementById('adminDashboard').style.display = 'none';
+        document.getElementById('createSection').style.display = 'block';
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('adminLoginStatus').textContent = '';
       }
 
       // Upload preview helpers
